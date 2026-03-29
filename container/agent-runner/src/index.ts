@@ -409,7 +409,8 @@ async function runQuery(
         'TeamCreate', 'TeamDelete', 'SendMessage',
         'TodoWrite', 'ToolSearch', 'Skill',
         'NotebookEdit',
-        'mcp__nanoclaw__*'
+        'mcp__nanoclaw__*',
+        ...(process.env.ATHENAEUM_URL ? ['mcp__athenaeum__*'] : []),
       ],
       env: sdkEnv,
       permissionMode: 'bypassPermissions',
@@ -425,6 +426,15 @@ async function runQuery(
             NANOCLAW_IS_MAIN: containerInput.isMain ? '1' : '0',
           },
         },
+        ...(process.env.ATHENAEUM_URL ? {
+          athenaeum: {
+            type: 'http' as const,
+            url: process.env.ATHENAEUM_URL,
+            ...(process.env.ATHENAEUM_API_KEY
+              ? { headers: { Authorization: `Bearer ${process.env.ATHENAEUM_API_KEY}` } }
+              : {}),
+          },
+        } : {}),
       },
       hooks: {
         PreCompact: [{ hooks: [createPreCompactHook(containerInput.assistantName)] }],

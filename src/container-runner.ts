@@ -26,8 +26,11 @@ import {
   stopContainer,
 } from './container-runtime.js';
 import { detectAuthMode } from './credential-proxy.js';
+import { readEnvFile } from './env.js';
 import { validateAdditionalMounts } from './mount-security.js';
 import { RegisteredGroup } from './types.js';
+
+const atheneumEnv = readEnvFile(['ATHENAEUM_URL', 'ATHENAEUM_API_KEY']);
 
 // Sentinel markers for robust output parsing (must match agent-runner)
 const OUTPUT_START_MARKER = '---NANOCLAW_OUTPUT_START---';
@@ -236,6 +239,14 @@ function buildContainerArgs(
     '-e',
     `ANTHROPIC_BASE_URL=http://${CONTAINER_HOST_GATEWAY}:${CREDENTIAL_PROXY_PORT}`,
   );
+
+  // Athenaeum knowledge retrieval MCP server (personal Obsidian vault + memory)
+  if (atheneumEnv.ATHENAEUM_URL) {
+    args.push('-e', `ATHENAEUM_URL=${atheneumEnv.ATHENAEUM_URL}`);
+  }
+  if (atheneumEnv.ATHENAEUM_API_KEY) {
+    args.push('-e', `ATHENAEUM_API_KEY=${atheneumEnv.ATHENAEUM_API_KEY}`);
+  }
 
   // Mirror the host's auth method with a placeholder value.
   // API key mode: SDK sends x-api-key, proxy replaces with real key.
