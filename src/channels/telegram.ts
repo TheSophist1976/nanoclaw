@@ -127,7 +127,10 @@ export async function sendPoolMessage(
           'Assigned and renamed unnamed pool bot',
         );
       } catch (err) {
-        logger.warn({ sender, err }, 'Failed to rename pool bot (sending anyway)');
+        logger.warn(
+          { sender, err },
+          'Failed to rename pool bot (sending anyway)',
+        );
       }
     }
     api = unnamedApis[idx];
@@ -145,13 +148,14 @@ export async function sendPoolMessage(
       await sendTelegramMessage(api, numericId, text);
     } else {
       for (let i = 0; i < text.length; i += MAX_LENGTH) {
-        await sendTelegramMessage(api, numericId, text.slice(i, i + MAX_LENGTH));
+        await sendTelegramMessage(
+          api,
+          numericId,
+          text.slice(i, i + MAX_LENGTH),
+        );
       }
     }
-    logger.info(
-      { chatId, sender, length: text.length },
-      'Pool message sent',
-    );
+    logger.info({ chatId, sender, length: text.length }, 'Pool message sent');
   } catch (err) {
     logger.error({ chatId, sender, err }, 'Failed to send pool message');
     throw err; // Re-throw so IPC can fall back to main bot

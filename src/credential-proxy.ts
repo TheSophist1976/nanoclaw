@@ -64,8 +64,7 @@ function extractAndLogUsage(
             inputTokens += event.message.usage.input_tokens || 0;
             cacheWriteTokens +=
               event.message.usage.cache_creation_input_tokens || 0;
-            cacheReadTokens +=
-              event.message.usage.cache_read_input_tokens || 0;
+            cacheReadTokens += event.message.usage.cache_read_input_tokens || 0;
           }
         }
         if (event.type === 'message_delta' && event.usage) {
@@ -184,8 +183,7 @@ export function startCredentialProxy(
 
             // Track usage for messages API responses
             const isMessagesApi =
-              req.url?.includes('/v1/messages') &&
-              req.method === 'POST';
+              req.url?.includes('/v1/messages') && req.method === 'POST';
             if (isMessagesApi) {
               const responseChunks: Buffer[] = [];
               upRes.on('data', (chunk: Buffer) => {

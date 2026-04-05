@@ -272,15 +272,24 @@ function buildContainerArgs(
     args.push('-e', `GOOGLE_CLIENT_ID=${googleDriveEnv.GOOGLE_CLIENT_ID}`);
   }
   if (googleDriveEnv.GOOGLE_CLIENT_SECRET) {
-    args.push('-e', `GOOGLE_CLIENT_SECRET=${googleDriveEnv.GOOGLE_CLIENT_SECRET}`);
+    args.push(
+      '-e',
+      `GOOGLE_CLIENT_SECRET=${googleDriveEnv.GOOGLE_CLIENT_SECRET}`,
+    );
   }
   if (googleDriveEnv.GOOGLE_REFRESH_TOKEN) {
-    args.push('-e', `GOOGLE_REFRESH_TOKEN=${googleDriveEnv.GOOGLE_REFRESH_TOKEN}`);
+    args.push(
+      '-e',
+      `GOOGLE_REFRESH_TOKEN=${googleDriveEnv.GOOGLE_REFRESH_TOKEN}`,
+    );
   }
 
   // Readwise CLI access token (for curator container skill)
   if (readwiseEnv.READWISE_ACCESS_TOKEN) {
-    args.push('-e', `READWISE_ACCESS_TOKEN=${readwiseEnv.READWISE_ACCESS_TOKEN}`);
+    args.push(
+      '-e',
+      `READWISE_ACCESS_TOKEN=${readwiseEnv.READWISE_ACCESS_TOKEN}`,
+    );
   }
 
   // Mirror the host's auth method with a placeholder value.

@@ -65,10 +65,16 @@ export const IPC_POLL_INTERVAL = 1000;
 // Parse TELEGRAM_BOT_POOL entries. Format: "Name=token,Name=token,..."
 // Named entries (Name=token) get fixed sender→bot mapping.
 // Unnamed entries (bare tokens) go into the round-robin pool.
-function parseBotPool(raw: string): { named: Map<string, string>; unnamed: string[] } {
+function parseBotPool(raw: string): {
+  named: Map<string, string>;
+  unnamed: string[];
+} {
   const named = new Map<string, string>();
   const unnamed: string[] = [];
-  for (const entry of raw.split(',').map((t) => t.trim()).filter(Boolean)) {
+  for (const entry of raw
+    .split(',')
+    .map((t) => t.trim())
+    .filter(Boolean)) {
     const eqIdx = entry.indexOf('=');
     if (eqIdx > 0) {
       const name = entry.slice(0, eqIdx).trim();
@@ -80,7 +86,8 @@ function parseBotPool(raw: string): { named: Map<string, string>; unnamed: strin
   }
   return { named, unnamed };
 }
-const botPoolRaw = process.env.TELEGRAM_BOT_POOL || envConfig.TELEGRAM_BOT_POOL || '';
+const botPoolRaw =
+  process.env.TELEGRAM_BOT_POOL || envConfig.TELEGRAM_BOT_POOL || '';
 export const TELEGRAM_BOT_POOL_PARSED = parseBotPool(botPoolRaw);
 // Flat list of all tokens for backwards compat (init check)
 export const TELEGRAM_BOT_POOL = [
