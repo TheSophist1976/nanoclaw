@@ -32,6 +32,12 @@ import { validateAdditionalMounts } from './mount-security.js';
 import { RegisteredGroup } from './types.js';
 
 const atheneumEnv = readEnvFile(['ATHENAEUM_URL', 'ATHENAEUM_API_KEY']);
+const googleDriveEnv = readEnvFile([
+  'GOOGLE_CLIENT_ID',
+  'GOOGLE_CLIENT_SECRET',
+  'GOOGLE_REFRESH_TOKEN',
+]);
+const readwiseEnv = readEnvFile(['READWISE_ACCESS_TOKEN']);
 
 // Sentinel markers for robust output parsing (must match agent-runner)
 const OUTPUT_START_MARKER = '---NANOCLAW_OUTPUT_START---';
@@ -240,6 +246,7 @@ function buildVolumeMounts(
 function buildContainerArgs(
   mounts: VolumeMount[],
   containerName: string,
+  group: RegisteredGroup,
 ): string[] {
   const args: string[] = ['run', '-i', '--rm', '--name', containerName];
 
@@ -260,6 +267,22 @@ function buildContainerArgs(
     args.push('-e', `ATHENAEUM_API_KEY=${atheneumEnv.ATHENAEUM_API_KEY}`);
   }
 
+  // Google Drive OAuth credentials (for google-drive container skill)
+  if (googleDriveEnv.GOOGLE_CLIENT_ID) {
+    args.push('-e', `GOOGLE_CLIENT_ID=${googleDriveEnv.GOOGLE_CLIENT_ID}`);
+  }
+  if (googleDriveEnv.GOOGLE_CLIENT_SECRET) {
+    args.push('-e', `GOOGLE_CLIENT_SECRET=${googleDriveEnv.GOOGLE_CLIENT_SECRET}`);
+  }
+  if (googleDriveEnv.GOOGLE_REFRESH_TOKEN) {
+    args.push('-e', `GOOGLE_REFRESH_TOKEN=${googleDriveEnv.GOOGLE_REFRESH_TOKEN}`);
+  }
+
+  // Readwise CLI access token (for curator container skill)
+  if (readwiseEnv.READWISE_ACCESS_TOKEN) {
+    args.push('-e', `READWISE_ACCESS_TOKEN=${readwiseEnv.READWISE_ACCESS_TOKEN}`);
+  }
+
   // Mirror the host's auth method with a placeholder value.
   // API key mode: SDK sends x-api-key, proxy replaces with real key.
   // OAuth mode:   SDK exchanges placeholder token for temp API key,
@@ -269,6 +292,11 @@ function buildContainerArgs(
     args.push('-e', 'ANTHROPIC_API_KEY=placeholder');
   } else {
     args.push('-e', 'CLAUDE_CODE_OAUTH_TOKEN=placeholder');
+  }
+
+  // Per-group model override
+  if (group.containerConfig?.model) {
+    args.push('-e', `CLAUDE_CODE_USE_MODEL=${group.containerConfig.model}`);
   }
 
   // Runtime-specific args for host gateway resolution
@@ -311,7 +339,7 @@ export async function runContainerAgent(
   const mounts = buildVolumeMounts(group, input.isMain);
   const safeName = group.folder.replace(/[^a-zA-Z0-9-]/g, '-');
   const containerName = `nanoclaw-${safeName}-${Date.now()}`;
-  const containerArgs = buildContainerArgs(mounts, containerName);
+  const containerArgs = buildContainerArgs(mounts, containerName, group);
 
   logger.debug(
     {

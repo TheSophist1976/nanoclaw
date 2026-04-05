@@ -3,7 +3,8 @@ import path from 'path';
 
 import { CronExpressionParser } from 'cron-parser';
 
-import { DATA_DIR, IPC_POLL_INTERVAL, TIMEZONE } from './config.js';
+import { DATA_DIR, IPC_POLL_INTERVAL, TELEGRAM_BOT_POOL, TIMEZONE } from './config.js';
+import { sendPoolMessage } from './channels/telegram.js';
 import { AvailableGroup } from './container-runner.js';
 import { createTask, deleteTask, getTaskById, updateTask } from './db.js';
 import { isValidGroupFolder } from './group-folder.js';
@@ -81,9 +82,28 @@ export function startIpcWatcher(deps: IpcDeps): void {
                   isMain ||
                   (targetGroup && targetGroup.folder === sourceGroup)
                 ) {
-                  await deps.sendMessage(data.chatJid, data.text);
+                  // Route through bot pool when sender is set and target is Telegram
+                  if (
+                    data.sender &&
+                    data.chatJid.startsWith('tg:') &&
+                    TELEGRAM_BOT_POOL.length > 0
+                  ) {
+                    try {
+                      await sendPoolMessage(
+                        data.chatJid,
+                        data.text,
+                        data.sender,
+                        sourceGroup,
+                      );
+                    } catch {
+                      // Pool bot failed — fall back to main bot
+                      await deps.sendMessage(data.chatJid, data.text);
+                    }
+                  } else {
+                    await deps.sendMessage(data.chatJid, data.text);
+                  }
                   logger.info(
-                    { chatJid: data.chatJid, sourceGroup },
+                    { chatJid: data.chatJid, sourceGroup, sender: data.sender },
                     'IPC message sent',
                   );
                 } else {

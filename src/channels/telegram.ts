@@ -41,6 +41,123 @@ async function sendTelegramMessage(
   }
 }
 
+// Bot pool for agent teams: named bots get fixed sender mapping,
+// unnamed bots go into a round-robin pool.
+const namedApis = new Map<string, Api>(); // sender name → dedicated Api
+const unnamedApis: Api[] = [];
+// Round-robin fallback for senders without a named bot
+const senderBotMap = new Map<string, number>();
+let nextPoolIndex = 0;
+
+/**
+ * Initialize the bot pool. Named entries (from TELEGRAM_BOT_POOL_PARSED)
+ * get fixed sender→bot mapping. Unnamed tokens go into round-robin.
+ */
+export async function initBotPool(
+  named: Map<string, string>,
+  unnamed: string[],
+): Promise<void> {
+  for (const [senderName, token] of named) {
+    try {
+      const api = new Api(token);
+      const me = await api.getMe();
+      namedApis.set(senderName, api);
+      // Rename bot to match its assigned sender
+      try {
+        await api.setMyName(senderName);
+      } catch (err) {
+        logger.warn({ senderName, err }, 'Failed to rename named pool bot');
+      }
+      logger.info(
+        { senderName, username: me.username, id: me.id },
+        'Named pool bot initialized',
+      );
+    } catch (err) {
+      logger.error({ senderName, err }, 'Failed to initialize named pool bot');
+    }
+  }
+  for (const token of unnamed) {
+    try {
+      const api = new Api(token);
+      const me = await api.getMe();
+      unnamedApis.push(api);
+      logger.info(
+        { username: me.username, id: me.id, poolSize: unnamedApis.length },
+        'Unnamed pool bot initialized',
+      );
+    } catch (err) {
+      logger.error({ err }, 'Failed to initialize pool bot');
+    }
+  }
+  const total = namedApis.size + unnamedApis.length;
+  if (total > 0) {
+    logger.info(
+      { named: namedApis.size, unnamed: unnamedApis.length },
+      'Telegram bot pool ready',
+    );
+  }
+}
+
+/**
+ * Send a message via a pool bot. Named senders use their dedicated bot.
+ * Others fall back to round-robin from the unnamed pool.
+ */
+export async function sendPoolMessage(
+  chatId: string,
+  text: string,
+  sender: string,
+  groupFolder: string,
+): Promise<void> {
+  // Try named bot first
+  let api = namedApis.get(sender);
+
+  // Fall back to unnamed round-robin pool
+  if (!api && unnamedApis.length > 0) {
+    const key = `${groupFolder}:${sender}`;
+    let idx = senderBotMap.get(key);
+    if (idx === undefined) {
+      idx = nextPoolIndex % unnamedApis.length;
+      nextPoolIndex++;
+      senderBotMap.set(key, idx);
+      try {
+        await unnamedApis[idx].setMyName(sender);
+        await new Promise((r) => setTimeout(r, 2000));
+        logger.info(
+          { sender, groupFolder, poolIndex: idx },
+          'Assigned and renamed unnamed pool bot',
+        );
+      } catch (err) {
+        logger.warn({ sender, err }, 'Failed to rename pool bot (sending anyway)');
+      }
+    }
+    api = unnamedApis[idx];
+  }
+
+  if (!api) {
+    // No pool bots available — caller should fall back to main channel
+    return;
+  }
+
+  try {
+    const numericId = chatId.replace(/^tg:/, '');
+    const MAX_LENGTH = 4096;
+    if (text.length <= MAX_LENGTH) {
+      await sendTelegramMessage(api, numericId, text);
+    } else {
+      for (let i = 0; i < text.length; i += MAX_LENGTH) {
+        await sendTelegramMessage(api, numericId, text.slice(i, i + MAX_LENGTH));
+      }
+    }
+    logger.info(
+      { chatId, sender, length: text.length },
+      'Pool message sent',
+    );
+  } catch (err) {
+    logger.error({ chatId, sender, err }, 'Failed to send pool message');
+    throw err; // Re-throw so IPC can fall back to main bot
+  }
+}
+
 export class TelegramChannel implements Channel {
   name = 'telegram';
 

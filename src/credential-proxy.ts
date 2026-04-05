@@ -9,18 +9,110 @@
  *             API key via /api/oauth/claude_cli/create_api_key.
  *             Proxy injects real OAuth token on that exchange request;
  *             subsequent requests carry the temp key which is valid as-is.
+ *
+ * Usage tracking:
+ *   Buffers API responses to extract token usage data from the response body.
+ *   Supports both non-streaming (JSON) and streaming (SSE) responses.
+ *   Logs usage to SQLite for cost tracking and reporting.
  */
-import { createServer, Server } from 'http';
+import { createServer, IncomingMessage, Server, ServerResponse } from 'http';
 import { request as httpsRequest } from 'https';
 import { request as httpRequest, RequestOptions } from 'http';
 
 import { readEnvFile } from './env.js';
 import { logger } from './logger.js';
+import { estimateCost, logApiUsage } from './db.js';
 
 export type AuthMode = 'api-key' | 'oauth';
 
 export interface ProxyConfig {
   authMode: AuthMode;
+}
+
+/**
+ * Extract usage data from an API response and log it.
+ * Handles both non-streaming (JSON) and streaming (SSE) responses.
+ */
+function extractAndLogUsage(
+  body: string,
+  upRes: IncomingMessage,
+  requestPath: string,
+): void {
+  const statusCode = upRes.statusCode || 0;
+  // Only track successful responses
+  if (statusCode < 200 || statusCode >= 300) return;
+
+  const contentType = upRes.headers['content-type'] || '';
+  let model: string | null = null;
+  let inputTokens = 0;
+  let outputTokens = 0;
+  let cacheWriteTokens = 0;
+  let cacheReadTokens = 0;
+
+  if (contentType.includes('text/event-stream')) {
+    // SSE streaming response — parse events for usage data
+    // Usage comes in message_delta and message_start events
+    for (const line of body.split('\n')) {
+      if (!line.startsWith('data: ')) continue;
+      const data = line.slice(6);
+      if (data === '[DONE]') continue;
+      try {
+        const event = JSON.parse(data);
+        if (event.type === 'message_start' && event.message) {
+          model = event.message.model || null;
+          if (event.message.usage) {
+            inputTokens += event.message.usage.input_tokens || 0;
+            cacheWriteTokens +=
+              event.message.usage.cache_creation_input_tokens || 0;
+            cacheReadTokens +=
+              event.message.usage.cache_read_input_tokens || 0;
+          }
+        }
+        if (event.type === 'message_delta' && event.usage) {
+          outputTokens += event.usage.output_tokens || 0;
+        }
+      } catch {
+        // Skip unparseable events
+      }
+    }
+  } else {
+    // Non-streaming JSON response
+    try {
+      const json = JSON.parse(body);
+      model = json.model || null;
+      if (json.usage) {
+        inputTokens = json.usage.input_tokens || 0;
+        outputTokens = json.usage.output_tokens || 0;
+        cacheWriteTokens = json.usage.cache_creation_input_tokens || 0;
+        cacheReadTokens = json.usage.cache_read_input_tokens || 0;
+      }
+    } catch {
+      return; // Not valid JSON, skip
+    }
+  }
+
+  // Only log if we got token data
+  if (inputTokens + outputTokens === 0) return;
+
+  const cost = estimateCost(
+    model,
+    inputTokens,
+    outputTokens,
+    cacheWriteTokens,
+    cacheReadTokens,
+  );
+
+  logApiUsage({
+    timestamp: new Date().toISOString(),
+    model,
+    input_tokens: inputTokens,
+    output_tokens: outputTokens,
+    cache_creation_input_tokens: cacheWriteTokens,
+    cache_read_input_tokens: cacheReadTokens,
+    estimated_cost_usd: cost,
+    request_path: requestPath,
+    status_code: statusCode,
+  });
 }
 
 export function startCredentialProxy(
@@ -89,7 +181,32 @@ export function startCredentialProxy(
           } as RequestOptions,
           (upRes) => {
             res.writeHead(upRes.statusCode!, upRes.headers);
-            upRes.pipe(res);
+
+            // Track usage for messages API responses
+            const isMessagesApi =
+              req.url?.includes('/v1/messages') &&
+              req.method === 'POST';
+            if (isMessagesApi) {
+              const responseChunks: Buffer[] = [];
+              upRes.on('data', (chunk: Buffer) => {
+                responseChunks.push(chunk);
+                res.write(chunk);
+              });
+              upRes.on('end', () => {
+                res.end();
+                try {
+                  extractAndLogUsage(
+                    Buffer.concat(responseChunks).toString('utf-8'),
+                    upRes,
+                    req.url || '',
+                  );
+                } catch {
+                  // Never let usage tracking break the proxy
+                }
+              });
+            } else {
+              upRes.pipe(res);
+            }
           },
         );
 

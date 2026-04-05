@@ -193,5 +193,44 @@ if command -v openssl &>/dev/null; then
   ssl_certs="$certs"
 fi
 
+# --- 9. API usage (last 24h) ---
+api_usage='{"error":"db not found"}'
+db_path="$nanoclaw_dir/store/messages.db"
+if [ -f "$db_path" ]; then
+  since=$(date -u -d "24 hours ago" "+%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || date -u -v-24H "+%Y-%m-%dT%H:%M:%SZ")
+  api_usage=$(node -e "
+    const Database = require('better-sqlite3');
+    const db = new Database('$db_path', { readonly: true });
+    try {
+      const totals = db.prepare(\`SELECT
+        COALESCE(SUM(input_tokens),0) as input,
+        COALESCE(SUM(output_tokens),0) as output,
+        COALESCE(SUM(cache_creation_input_tokens),0) as cache_write,
+        COALESCE(SUM(cache_read_input_tokens),0) as cache_read,
+        COALESCE(SUM(estimated_cost_usd),0) as cost,
+        COUNT(*) as requests
+        FROM api_usage WHERE timestamp >= '$since'\`).get();
+      const byModel = db.prepare(\`SELECT model,
+        COALESCE(SUM(input_tokens),0) as input,
+        COALESCE(SUM(output_tokens),0) as output,
+        COALESCE(SUM(estimated_cost_usd),0) as cost,
+        COUNT(*) as requests
+        FROM api_usage WHERE timestamp >= '$since'
+        GROUP BY model ORDER BY cost DESC\`).all();
+      console.log(JSON.stringify({
+        period:'24h',
+        total_input_tokens:totals.input,
+        total_output_tokens:totals.output,
+        total_cache_write_tokens:totals.cache_write,
+        total_cache_read_tokens:totals.cache_read,
+        estimated_cost_usd:Math.round(totals.cost*10000)/10000,
+        request_count:totals.requests,
+        by_model:byModel.map(m=>({model:m.model,input:m.input,output:m.output,cost:Math.round(m.cost*10000)/10000,requests:m.requests}))
+      }));
+    } catch(e) { console.log(JSON.stringify({error:e.message})); }
+    db.close();
+  " 2>/dev/null) || api_usage='{"error":"query failed"}'
+fi
+
 # --- Assemble output ---
-echo "{\"wakeAgent\":true,\"data\":{\"scan_type\":\"daily\",\"timestamp\":\"$(date -Iseconds)\",\"npm_audit\":$npm_audit,\"code_project_audits\":$code_audits,\"system_updates\":$updates,\"open_ports\":$ports,\"secrets_in_commits\":$secrets_found,\"failed_logins\":$failed_logins,\"docker_socket\":$docker_socket,\"ssl_certificates\":$ssl_certs}}"
+echo "{\"wakeAgent\":true,\"data\":{\"scan_type\":\"daily\",\"timestamp\":\"$(date -Iseconds)\",\"npm_audit\":$npm_audit,\"code_project_audits\":$code_audits,\"system_updates\":$updates,\"open_ports\":$ports,\"secrets_in_commits\":$secrets_found,\"failed_logins\":$failed_logins,\"docker_socket\":$docker_socket,\"ssl_certificates\":$ssl_certs,\"api_usage\":$api_usage}}"

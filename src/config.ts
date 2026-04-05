@@ -11,6 +11,7 @@ const envConfig = readEnvFile([
   'ASSISTANT_NAME',
   'ASSISTANT_HAS_OWN_NUMBER',
   'TZ',
+  'TELEGRAM_BOT_POOL',
 ]);
 
 export const ASSISTANT_NAME =
@@ -61,6 +62,31 @@ export const MAX_MESSAGES_PER_PROMPT = Math.max(
   parseInt(process.env.MAX_MESSAGES_PER_PROMPT || '10', 10) || 10,
 );
 export const IPC_POLL_INTERVAL = 1000;
+// Parse TELEGRAM_BOT_POOL entries. Format: "Name=token,Name=token,..."
+// Named entries (Name=token) get fixed sender→bot mapping.
+// Unnamed entries (bare tokens) go into the round-robin pool.
+function parseBotPool(raw: string): { named: Map<string, string>; unnamed: string[] } {
+  const named = new Map<string, string>();
+  const unnamed: string[] = [];
+  for (const entry of raw.split(',').map((t) => t.trim()).filter(Boolean)) {
+    const eqIdx = entry.indexOf('=');
+    if (eqIdx > 0) {
+      const name = entry.slice(0, eqIdx).trim();
+      const token = entry.slice(eqIdx + 1).trim();
+      if (name && token) named.set(name, token);
+    } else {
+      unnamed.push(entry);
+    }
+  }
+  return { named, unnamed };
+}
+const botPoolRaw = process.env.TELEGRAM_BOT_POOL || envConfig.TELEGRAM_BOT_POOL || '';
+export const TELEGRAM_BOT_POOL_PARSED = parseBotPool(botPoolRaw);
+// Flat list of all tokens for backwards compat (init check)
+export const TELEGRAM_BOT_POOL = [
+  ...TELEGRAM_BOT_POOL_PARSED.named.values(),
+  ...TELEGRAM_BOT_POOL_PARSED.unnamed,
+];
 export const IDLE_TIMEOUT = parseInt(process.env.IDLE_TIMEOUT || '1800000', 10); // 30min default — how long to keep container alive after last result
 export const MAX_CONCURRENT_CONTAINERS = Math.max(
   1,

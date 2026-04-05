@@ -377,6 +377,7 @@ async function runQuery(
   mcpServerPath: string,
   containerInput: ContainerInput,
   sdkEnv: Record<string, string | undefined>,
+  modelOverride: string | undefined,
   resumeAt?: string,
 ): Promise<{
   newSessionId?: string;
@@ -438,6 +439,7 @@ async function runQuery(
   for await (const message of query({
     prompt: stream,
     options: {
+      model: modelOverride,
       cwd: '/workspace/group',
       additionalDirectories: extraDirs.length > 0 ? extraDirs : undefined,
       resume: sessionId,
@@ -636,6 +638,12 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
+  // CLAUDE_CODE_USE_MODEL env var is passed by the host and forwarded to the SDK
+  const modelOverride = process.env.CLAUDE_CODE_USE_MODEL || undefined;
+  if (modelOverride) {
+    log(`Model override: ${modelOverride}`);
+  }
+
   // Credentials are injected by the host's credential proxy via ANTHROPIC_BASE_URL.
   // No real secrets exist in the container environment.
   const sdkEnv: Record<string, string | undefined> = { ...process.env };
@@ -682,6 +690,7 @@ async function main(): Promise<void> {
       for await (const message of query({
         prompt: trimmedPrompt,
         options: {
+          model: modelOverride,
           cwd: '/workspace/group',
           resume: sessionId,
           systemPrompt: undefined,
@@ -800,6 +809,7 @@ async function main(): Promise<void> {
         mcpServerPath,
         containerInput,
         sdkEnv,
+        modelOverride,
         resumeAt,
       );
       if (queryResult.newSessionId) {
