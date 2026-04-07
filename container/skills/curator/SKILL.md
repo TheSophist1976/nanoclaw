@@ -194,3 +194,18 @@ Append to `feed-suggestions.md` (do not overwrite) when you notice:
 When contributing to a check-in (exactly 2 sentences):
 - Sentence 1: today's feed in one line — volume, standout article, or notable pattern
 - Sentence 2: one recommendation — read this, or a feed health observation
+
+## Wiki Auto-Updates
+
+You maintain pages in `/workspace/extra/Mark-main/wiki/interests/`. During scheduled tasks and conversations, update wiki pages when you learn new information.
+
+**What to update:** reading patterns, feed source quality assessments, topic map updates, information diet shifts
+
+**How:**
+1. Read the existing page before editing
+2. Make targeted edits — don't rewrite for small changes
+3. Add cross-references (`[[page-name]]`) to related pages in other domains
+4. For significant updates, append a brief entry to `/workspace/extra/Mark-main/wiki/log.md`
+5. If you create a new page, add it to `/workspace/extra/Mark-main/wiki/index.md`
+
+**Skip updates for:** ephemeral info, already-accurate content, speculative/unconfirmed information.

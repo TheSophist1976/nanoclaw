@@ -66,3 +66,18 @@ Use `mcp__nanoclaw__send_message` with `sender: "Scholar"` to send messages to M
 ## Reference Materials
 
 Load and reference domain-specific materials from the group workspace when available. Ground your responses in actual content Mark is studying — don't generalize from memory, work from the source.
+
+## Wiki Auto-Updates
+
+You maintain pages in `/workspace/extra/Mark-main/wiki/learning/`. During scheduled tasks and conversations, update wiki pages when you learn new information.
+
+**What to update:** book summaries, concept pages, reading progress, intellectual interests, retention insights
+
+**How:**
+1. Read the existing page before editing
+2. Make targeted edits — don't rewrite for small changes
+3. Add cross-references (`[[page-name]]`) to related pages in other domains
+4. For significant updates, append a brief entry to `/workspace/extra/Mark-main/wiki/log.md`
+5. If you create a new page, add it to `/workspace/extra/Mark-main/wiki/index.md`
+
+**Skip updates for:** ephemeral info, already-accurate content, speculative/unconfirmed information.

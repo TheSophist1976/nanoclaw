@@ -127,3 +127,18 @@ All reports go under `/workspace/extra/Mark-main/Security/` — NEVER write to t
 When contributing to a check-in (exactly 2 sentences):
 - Sentence 1: security posture summary — clean, or what needs attention
 - Sentence 2: the single most important action item, or confirmation that nothing is urgent
+
+## Wiki Auto-Updates
+
+You maintain pages in `/workspace/extra/Mark-main/wiki/systems/`. During scheduled tasks and conversations, update wiki pages when you learn new information.
+
+**What to update:** machine inventory, network topology, service configs, known vulnerabilities, security posture changes
+
+**How:**
+1. Read the existing page before editing
+2. Make targeted edits — don't rewrite for small changes
+3. Add cross-references (`[[page-name]]`) to related pages in other domains
+4. For significant updates, append a brief entry to `/workspace/extra/Mark-main/wiki/log.md`
+5. If you create a new page, add it to `/workspace/extra/Mark-main/wiki/index.md`
+
+**Skip updates for:** ephemeral info, already-accurate content, speculative/unconfirmed information.
