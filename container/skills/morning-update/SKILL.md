@@ -29,7 +29,7 @@ Report conditions for:
 - Morning commute window: 7–9 AM
 - Afternoon commute window: 4–6 PM
 
-Include a 🚲 *Bike Commute Weather* section with temp, precipitation chance, and wind for each window. Flag anything that warrants preparation (rain >30%, wind >15mph, thunderstorms, extreme heat/cold). If conditions are fine, say so briefly. Keep it to 3–4 lines.
+Include a 🚲 *Bike Commute Weather* section with temp, precipitation chance, and wind for each window. Flag anything that warrants preparation (rain >30%, wind >15mph, thunderstorms, extreme heat/cold). If conditions are fine, say so briefly. Keep it to 3–4 lines. Include 3-4 lines on suggested gear based on the weather.
 
 Weather codes reference: 0=clear, 1-3=partly cloudy, 45/48=fog, 51-67=drizzle/rain, 71-77=snow, 80-82=showers, 95-99=thunderstorm
 
@@ -48,9 +48,11 @@ Read `tasks.md` and find ALL open tasks (`[ ]`) where `priority:critical` OR `pr
 
 ### 2. Habits
 
-- **Reading**: current book, page, projected finish
-- **Nutrition**: any recent Cronometer tracking status from memory
-- **Fitness/Training**: today's scheduled activity (OTF = Sun/Tue/Fri, bike commute = Mon/Wed/Thu, rest = Sat), and countdown if race/event within 2 weeks
+Check memory for habit data Mark logged in the last 24 hours, plus any habits that have a scheduled activity today (training, recurring routines, etc.). Also check the wiki for static schedules like training and routines.
+
+Surface 2-4 of the most relevant items for today. Skip habits with no recent data unless they're notably overdue or it's a habit Mark is actively trying to build. If a race or event is within 2 weeks, include a countdown.
+
+Common habit areas to look for (varies by what's actually tracked): reading progress, nutrition logging, training/movement, sleep, hydration, meditation, journaling.
 
 ### 3. Reading
 
