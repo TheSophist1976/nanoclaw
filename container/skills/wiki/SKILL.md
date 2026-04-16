@@ -21,7 +21,7 @@ A persistent wiki at `/workspace/extra/Mark-main/wiki/` that compounds knowledge
 wiki/
 ├── index.md          # Catalog of all pages with one-line summaries
 ├── log.md            # Chronological record of all wiki activity
-├── life/             # Atlas: goals, priorities, decisions, life architecture
+├── life/             # Praxis: habits, values, parking lot, intentional practice
 ├── health/           # Nourish: protocols, nutrition, sleep, training
 ├── learning/         # Scholar: books, concepts, reading synthesis
 ├── systems/          # Sentinel: infrastructure, services, security
@@ -116,7 +116,7 @@ Specialists update wiki pages during their scheduled tasks. This is how the wiki
 
 | Specialist | Wiki directory | What they maintain |
 |------------|---------------|-------------------|
-| **Atlas** | `wiki/life/` | Goals, priorities, quarterly plans, decisions, accountability tracking |
+| **Praxis** | `wiki/life/` | Habits, values alignment, adherence tracking, parking lot, intentional practice |
 | **Nourish** | `wiki/health/` | Nutrition protocols, sleep patterns, training schedule, supplements, body signals |
 | **Scholar** | `wiki/learning/` | Book summaries, concept pages, reading goals, intellectual interests, retention notes |
 | **Sentinel** | `wiki/systems/` | Machine inventory, network topology, service configs, security posture, known vulnerabilities |
