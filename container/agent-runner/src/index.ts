@@ -444,13 +444,26 @@ async function runQuery(
       additionalDirectories: extraDirs.length > 0 ? extraDirs : undefined,
       resume: sessionId,
       resumeSessionAt: resumeAt,
-      systemPrompt: globalClaudeMd
-        ? {
-            type: 'preset' as const,
-            preset: 'claude_code' as const,
-            append: globalClaudeMd,
-          }
-        : undefined,
+      systemPrompt: (() => {
+        // Inject current date/time so the agent always knows the actual time,
+        // not its training cutoff. Container TZ is set via env var (TZ=America/New_York).
+        const now = new Date();
+        const dateLine = `Current date and time: ${now.toLocaleString('en-US', {
+          weekday: 'long',
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+          hour: 'numeric',
+          minute: '2-digit',
+          timeZoneName: 'short',
+        })} (ISO: ${now.toISOString()}).\n\nWhen referring to "today", "tomorrow", "this week", or any temporal reference, use this date as the source of truth — never rely on training data or guess.\n\n`;
+        const append = dateLine + (globalClaudeMd || '');
+        return {
+          type: 'preset' as const,
+          preset: 'claude_code' as const,
+          append,
+        };
+      })(),
       allowedTools: [
         'Bash',
         'Read',
