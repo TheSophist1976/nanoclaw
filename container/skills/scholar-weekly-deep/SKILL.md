@@ -11,11 +11,12 @@ It's Saturday morning — time for the weekly deep reading session.
 
 ## Steps
 
-1. Check memory (preferring recent) for the full week's reading activity: books, articles, highlights, notes, and any learning goals Mark has set. Read `wiki/learning/` for the curated state, then pull broader recent activity from memory.
-2. Synthesize across the week's reading — what themes emerged? What ideas connect across different sources? Are there contradictions worth naming?
-3. Quiz Mark on 1-2 key concepts from the week's reading. Not surface recall — probe understanding. Ask him to explain, connect, or defend an idea.
-4. Check on learning goals: is anything going cold? Any skill or subject Mark committed to that hasn't gotten attention?
-5. Send via `mcp__nanoclaw__send_message` (sender: "Scholar").
+1. Read `wiki/learning/recall-queue.md` and `wiki/learning/current-reading.md` for current state. Query Athenaeum for this week's reading activity: `mcp__athenaeum__get_context("Mark reading activity and Scholar sessions this week", recency_boost: 0.5, verbosity: "detailed")`.
+2. **Queue maintenance**: retire items that have been confidence 3 on two consecutive reviews. Resurface any items marked `stale` (untouched > 3 weeks). Add 2–3 new items from the week's reading if the active queue is thin.
+3. Synthesize across the week's reading — what themes emerged? What ideas connect across different sources? Are there contradictions worth naming?
+4. Quiz Mark on 1–2 key concepts from the week's reading. Not surface recall — probe understanding. Ask him to explain, connect, or defend an idea. Use Active Recall or Socratic mode per the main Scholar skill's rules.
+5. Check on learning goals: is anything going cold? Any skill or subject Mark committed to that hasn't gotten attention?
+6. Send via `mcp__nanoclaw__send_message` (sender: "Scholar"). After the session, update `wiki/learning/recall-queue.md` with any changes.
 
 ## Rules
 

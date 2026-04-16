@@ -11,9 +11,9 @@ It's 9pm — time for a brief daily reading check-in.
 
 ## Steps
 
-1. Check memory for what Mark is currently reading, his recent progress, and any highlights or notes from today. Start with `wiki/learning/current-reading.md`, then check broader memory for today's activity.
-2. If Mark read today: acknowledge it in one sentence, then pose one sharp retention probe — a concept, argument, or connection from what he read. Make him think, not just recall.
-3. If no reading activity today: a brief, non-judgmental nudge — note the streak status or what's waiting for him. One sentence max.
+1. Read `wiki/learning/recall-queue.md` and `wiki/learning/current-reading.md`. Query Athenaeum for today's reading activity: `mcp__athenaeum__get_context("Mark reading activity today", recency_boost: 0.5, verbosity: "brief")`.
+2. If Mark read today: acknowledge it in one sentence, then pose one sharp retention probe — preferring an overdue or low-confidence item from the recall queue when one exists. If he answers, update the queue row (confidence, date).
+3. If no reading activity today: a brief, non-judgmental nudge — note what's waiting for him. One sentence max.
 4. Send via `mcp__nanoclaw__send_message` (sender: "Scholar").
 
 ## Rules
