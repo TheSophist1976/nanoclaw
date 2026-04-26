@@ -7,20 +7,19 @@ import { ChildProcess, execSync, spawn } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 
-import { OneCLI } from '@onecli-sh/sdk';
-
 import {
   CONTAINER_IMAGE,
   CONTAINER_IMAGE_BASE,
   CONTAINER_INSTALL_LABEL,
+  CREDENTIAL_PROXY_PORT,
   DATA_DIR,
   GROUPS_DIR,
-  ONECLI_API_KEY,
-  ONECLI_URL,
   TIMEZONE,
 } from './config.js';
 import { readContainerConfig, writeContainerConfig } from './container-config.js';
-import { CONTAINER_RUNTIME_BIN, hostGatewayArgs, readonlyMountArgs, stopContainer } from './container-runtime.js';
+import { readEnvFile } from './env.js';
+import { CONTAINER_HOST_GATEWAY, CONTAINER_RUNTIME_BIN, hostGatewayArgs, readonlyMountArgs, stopContainer } from './container-runtime.js';
+import { detectAuthMode } from './credential-proxy.js';
 import { composeGroupClaudeMd } from './claude-md-compose.js';
 import { getAgentGroup } from './db/agent-groups.js';
 import { getDb, hasTable } from './db/connection.js';
@@ -45,7 +44,12 @@ import {
 } from './session-manager.js';
 import type { AgentGroup, Session } from './types.js';
 
-const onecli = new OneCLI({ url: ONECLI_URL, apiKey: ONECLI_API_KEY });
+const atheneumEnv = readEnvFile(['ATHENAEUM_URL', 'ATHENAEUM_API_KEY']);
+const googleDriveEnv = readEnvFile([
+  'GOOGLE_CLIENT_ID',
+  'GOOGLE_CLIENT_SECRET',
+  'GOOGLE_REFRESH_TOKEN',
+]);
 
 /** Active containers tracked by session ID. */
 const activeContainers = new Map<string, { process: ChildProcess; containerName: string }>();
@@ -434,20 +438,34 @@ async function buildContainerArgs(
     }
   }
 
-  // OneCLI gateway — injects HTTPS_PROXY + certs so container API calls
-  // are routed through the agent vault for credential injection.
-  try {
-    if (agentIdentifier) {
-      await onecli.ensureAgent({ name: agentGroup.name, identifier: agentIdentifier });
-    }
-    const onecliApplied = await onecli.applyContainerConfig(args, { addHostMapping: false, agent: agentIdentifier });
-    if (onecliApplied) {
-      log.info('OneCLI gateway applied', { containerName });
-    } else {
-      log.warn('OneCLI gateway not applied — container will have no credentials', { containerName });
-    }
-  } catch (err) {
-    log.warn('OneCLI gateway error — container will have no credentials', { containerName, err });
+  // Native credential proxy — route API calls through the local proxy so
+  // containers never see real credentials. Placeholder auth var is required
+  // so the Claude SDK doesn't abort before making any requests.
+  args.push('-e', `ANTHROPIC_BASE_URL=http://${CONTAINER_HOST_GATEWAY}:${CREDENTIAL_PROXY_PORT}`);
+  const authMode = detectAuthMode();
+  if (authMode === 'api-key') {
+    args.push('-e', 'ANTHROPIC_API_KEY=placeholder');
+  } else {
+    args.push('-e', 'CLAUDE_CODE_OAUTH_TOKEN=placeholder');
+  }
+
+  // Athenaeum knowledge retrieval MCP server (personal Obsidian vault + memory)
+  if (atheneumEnv.ATHENAEUM_URL) {
+    args.push('-e', `ATHENAEUM_URL=${atheneumEnv.ATHENAEUM_URL}`);
+  }
+  if (atheneumEnv.ATHENAEUM_API_KEY) {
+    args.push('-e', `ATHENAEUM_API_KEY=${atheneumEnv.ATHENAEUM_API_KEY}`);
+  }
+
+  // Google Drive OAuth credentials (for google-drive container skill)
+  if (googleDriveEnv.GOOGLE_CLIENT_ID) {
+    args.push('-e', `GOOGLE_CLIENT_ID=${googleDriveEnv.GOOGLE_CLIENT_ID}`);
+  }
+  if (googleDriveEnv.GOOGLE_CLIENT_SECRET) {
+    args.push('-e', `GOOGLE_CLIENT_SECRET=${googleDriveEnv.GOOGLE_CLIENT_SECRET}`);
+  }
+  if (googleDriveEnv.GOOGLE_REFRESH_TOKEN) {
+    args.push('-e', `GOOGLE_REFRESH_TOKEN=${googleDriveEnv.GOOGLE_REFRESH_TOKEN}`);
   }
 
   // Host gateway

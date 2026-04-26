@@ -11,6 +11,39 @@ import { log } from './log.js';
 /** The container runtime binary name. */
 export const CONTAINER_RUNTIME_BIN = 'docker';
 
+/** Hostname containers use to reach the host. */
+export const CONTAINER_HOST_GATEWAY = 'host.docker.internal';
+
+/**
+ * Address the credential proxy binds to so containers can reach it.
+ * On macOS/WSL, Docker Desktop routes host.docker.internal → loopback so
+ * 127.0.0.1 works. On bare Linux, the docker0 bridge IP is the reachable
+ * address; fall back to 0.0.0.0 if the bridge can't be detected.
+ */
+export function getProxyBindHost(): string {
+  const platform = os.platform();
+  if (platform === 'darwin') return '127.0.0.1';
+  // WSL2 — "microsoft" appears in kernel release
+  try {
+    const release = os.release().toLowerCase();
+    if (release.includes('microsoft')) return '127.0.0.1';
+  } catch {
+    /* ignore */
+  }
+  // Bare Linux: find docker0 bridge IP
+  try {
+    const ifaces = os.networkInterfaces();
+    const docker0 = ifaces['docker0'];
+    if (docker0) {
+      const ipv4 = docker0.find((i) => i.family === 'IPv4');
+      if (ipv4) return ipv4.address;
+    }
+  } catch {
+    /* ignore */
+  }
+  return '0.0.0.0';
+}
+
 /** CLI args needed for the container to resolve the host gateway. */
 export function hostGatewayArgs(): string[] {
   // On Linux, host.docker.internal isn't built-in — add it explicitly
