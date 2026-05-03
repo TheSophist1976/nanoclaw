@@ -6,12 +6,12 @@
  */
 import path from 'path';
 
-import { CREDENTIAL_PROXY_PORT, DATA_DIR } from './config.js';
+import { DATA_DIR } from './config.js';
+import { enforceStartupBackoff, resetCircuitBreaker } from './circuit-breaker.js';
 import { migrateGroupsToClaudeLocal } from './claude-md-compose.js';
-import { startCredentialProxy } from './credential-proxy.js';
 import { initDb } from './db/connection.js';
 import { runMigrations } from './db/migrations/index.js';
-import { ensureContainerRuntimeRunning, cleanupOrphans, getProxyBindHost } from './container-runtime.js';
+import { ensureContainerRuntimeRunning, cleanupOrphans } from './container-runtime.js';
 import { startActiveDeliveryPoll, startSweepDeliveryPoll, setDeliveryAdapter, stopDeliveryPolls } from './delivery.js';
 import { startHostSweep, stopHostSweep } from './host-sweep.js';
 import { routeInbound } from './router.js';
@@ -32,9 +32,6 @@ import {
 } from './response-registry.js';
 export { registerResponseHandler, onShutdown };
 export type { ResponsePayload, ResponseHandler };
-
-import type { Server } from 'http';
-let proxyServer: Server | undefined;
 
 async function dispatchResponse(payload: ResponsePayload): Promise<void> {
   for (const handler of getResponseHandlers()) {
@@ -62,8 +59,8 @@ import { initChannelAdapters, teardownChannelAdapters, getChannelAdapter } from 
 async function main(): Promise<void> {
   log.info('NanoClaw starting');
 
-  // 0. Start credential proxy (must be up before any container spawns)
-  proxyServer = await startCredentialProxy(CREDENTIAL_PROXY_PORT, getProxyBindHost());
+  // 0. Circuit breaker — backoff on rapid restarts
+  await enforceStartupBackoff();
 
   // 1. Init central DB
   const dbPath = path.join(DATA_DIR, 'v2.db');
@@ -181,9 +178,15 @@ async function shutdown(signal: string): Promise<void> {
   }
   stopDeliveryPolls();
   stopHostSweep();
-  await teardownChannelAdapters();
-  proxyServer?.close();
-  process.exit(0);
+  try {
+    await teardownChannelAdapters();
+  } finally {
+    // Always reset on graceful shutdown — even if teardown threw, we got here
+    // via SIGTERM/SIGINT, not a crash, so the next start shouldn't be counted
+    // as one.
+    resetCircuitBreaker();
+    process.exit(0);
+  }
 }
 
 process.on('SIGTERM', () => shutdown('SIGTERM'));

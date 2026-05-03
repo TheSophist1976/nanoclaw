@@ -7,25 +7,21 @@ import { ChildProcess, execSync, spawn } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 
+import { OneCLI } from '@onecli-sh/sdk';
+
 import {
   CONTAINER_IMAGE,
   CONTAINER_IMAGE_BASE,
   CONTAINER_INSTALL_LABEL,
-  CREDENTIAL_PROXY_PORT,
   DATA_DIR,
   GROUPS_DIR,
+  ONECLI_API_KEY,
+  ONECLI_URL,
   TIMEZONE,
 } from './config.js';
 import { readContainerConfig, writeContainerConfig } from './container-config.js';
 import { readEnvFile } from './env.js';
-import {
-  CONTAINER_HOST_GATEWAY,
-  CONTAINER_RUNTIME_BIN,
-  hostGatewayArgs,
-  readonlyMountArgs,
-  stopContainer,
-} from './container-runtime.js';
-import { detectAuthMode } from './credential-proxy.js';
+import { CONTAINER_RUNTIME_BIN, hostGatewayArgs, readonlyMountArgs, stopContainer } from './container-runtime.js';
 import { composeGroupClaudeMd } from './claude-md-compose.js';
 import { getAgentGroup } from './db/agent-groups.js';
 import { getDb, hasTable } from './db/connection.js';
@@ -50,6 +46,8 @@ import {
 } from './session-manager.js';
 import type { AgentGroup, Session } from './types.js';
 
+const onecli = new OneCLI({ url: ONECLI_URL, apiKey: ONECLI_API_KEY });
+
 const atheneumEnv = readEnvFile(['ATHENAEUM_URL', 'ATHENAEUM_API_KEY']);
 const paneEnv = readEnvFile(['PANE_API_KEY', 'PANE_MCP_URL']);
 const googleDriveEnv = readEnvFile(['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'GOOGLE_REFRESH_TOKEN']);
@@ -65,7 +63,7 @@ const activeContainers = new Map<string, { process: ChildProcess; containerName:
  * a duplicate container against the same session directory, producing
  * racy double-replies.
  */
-const wakePromises = new Map<string, Promise<void>>();
+const wakePromises = new Map<string, Promise<boolean>>();
 
 export function getActiveContainerCount(): number {
   return activeContainers.size;
@@ -80,20 +78,32 @@ export function isContainerRunning(sessionId: string): boolean {
  * (the in-flight wake promise is reused).
  *
  * The container runs the v2 agent-runner which polls the session DB.
+ *
+ * Contract: never throws. Returns `true` on successful spawn, `false` on
+ * transient spawn failure (e.g. OneCLI gateway unreachable). Callers don't
+ * need to wrap — the inbound row stays pending and host-sweep retries on
+ * its next tick. Callers that care (e.g. the router's typing indicator)
+ * can branch on the boolean.
  */
-export function wakeContainer(session: Session): Promise<void> {
+export function wakeContainer(session: Session): Promise<boolean> {
   if (activeContainers.has(session.id)) {
     log.debug('Container already running', { sessionId: session.id });
-    return Promise.resolve();
+    return Promise.resolve(true);
   }
   const existing = wakePromises.get(session.id);
   if (existing) {
     log.debug('Container wake already in-flight — joining existing promise', { sessionId: session.id });
     return existing;
   }
-  const promise = spawnContainer(session).finally(() => {
-    wakePromises.delete(session.id);
-  });
+  const promise = spawnContainer(session)
+    .then(() => true)
+    .catch((err) => {
+      log.warn('wakeContainer failed — host-sweep will retry', { sessionId: session.id, err });
+      return false;
+    })
+    .finally(() => {
+      wakePromises.delete(session.id);
+    });
   wakePromises.set(session.id, promise);
   return promise;
 }
@@ -441,17 +451,6 @@ async function buildContainerArgs(
     }
   }
 
-  // Native credential proxy — route API calls through the local proxy so
-  // containers never see real credentials. Placeholder auth var is required
-  // so the Claude SDK doesn't abort before making any requests.
-  args.push('-e', `ANTHROPIC_BASE_URL=http://${CONTAINER_HOST_GATEWAY}:${CREDENTIAL_PROXY_PORT}`);
-  const authMode = detectAuthMode();
-  if (authMode === 'api-key') {
-    args.push('-e', 'ANTHROPIC_API_KEY=placeholder');
-  } else {
-    args.push('-e', 'CLAUDE_CODE_OAUTH_TOKEN=placeholder');
-  }
-
   // Athenaeum knowledge retrieval MCP server (personal Obsidian vault + memory)
   if (atheneumEnv.ATHENAEUM_URL) {
     args.push('-e', `ATHENAEUM_URL=${atheneumEnv.ATHENAEUM_URL}`);
@@ -478,6 +477,20 @@ async function buildContainerArgs(
   if (googleDriveEnv.GOOGLE_REFRESH_TOKEN) {
     args.push('-e', `GOOGLE_REFRESH_TOKEN=${googleDriveEnv.GOOGLE_REFRESH_TOKEN}`);
   }
+
+  // OneCLI gateway — injects HTTPS_PROXY + certs so container API calls
+  // are routed through the agent vault for credential injection. Treated as
+  // a transient hard failure: if we can't wire the gateway, we don't spawn.
+  // The caller (router or host-sweep) catches the throw, leaves the inbound
+  // message pending, and the next sweep tick retries.
+  if (agentIdentifier) {
+    await onecli.ensureAgent({ name: agentGroup.name, identifier: agentIdentifier });
+  }
+  const onecliApplied = await onecli.applyContainerConfig(args, { addHostMapping: false, agent: agentIdentifier });
+  if (!onecliApplied) {
+    throw new Error('OneCLI gateway not applied — refusing to spawn container without credentials');
+  }
+  log.info('OneCLI gateway applied', { containerName });
 
   // Host gateway
   args.push(...hostGatewayArgs());
