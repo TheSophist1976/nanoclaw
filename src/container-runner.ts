@@ -18,7 +18,13 @@ import {
 } from './config.js';
 import { readContainerConfig, writeContainerConfig } from './container-config.js';
 import { readEnvFile } from './env.js';
-import { CONTAINER_HOST_GATEWAY, CONTAINER_RUNTIME_BIN, hostGatewayArgs, readonlyMountArgs, stopContainer } from './container-runtime.js';
+import {
+  CONTAINER_HOST_GATEWAY,
+  CONTAINER_RUNTIME_BIN,
+  hostGatewayArgs,
+  readonlyMountArgs,
+  stopContainer,
+} from './container-runtime.js';
 import { detectAuthMode } from './credential-proxy.js';
 import { composeGroupClaudeMd } from './claude-md-compose.js';
 import { getAgentGroup } from './db/agent-groups.js';
@@ -45,11 +51,8 @@ import {
 import type { AgentGroup, Session } from './types.js';
 
 const atheneumEnv = readEnvFile(['ATHENAEUM_URL', 'ATHENAEUM_API_KEY']);
-const googleDriveEnv = readEnvFile([
-  'GOOGLE_CLIENT_ID',
-  'GOOGLE_CLIENT_SECRET',
-  'GOOGLE_REFRESH_TOKEN',
-]);
+const paneEnv = readEnvFile(['PANE_API_KEY', 'PANE_MCP_URL']);
+const googleDriveEnv = readEnvFile(['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'GOOGLE_REFRESH_TOKEN']);
 
 /** Active containers tracked by session ID. */
 const activeContainers = new Map<string, { process: ChildProcess; containerName: string }>();
@@ -455,6 +458,14 @@ async function buildContainerArgs(
   }
   if (atheneumEnv.ATHENAEUM_API_KEY) {
     args.push('-e', `ATHENAEUM_API_KEY=${atheneumEnv.ATHENAEUM_API_KEY}`);
+  }
+
+  // Pane UI surface MCP server
+  if (paneEnv.PANE_API_KEY) {
+    args.push('-e', `PANE_API_KEY=${paneEnv.PANE_API_KEY}`);
+  }
+  if (paneEnv.PANE_MCP_URL) {
+    args.push('-e', `PANE_MCP_URL=${paneEnv.PANE_MCP_URL}`);
   }
 
   // Google Drive OAuth credentials (for google-drive container skill)

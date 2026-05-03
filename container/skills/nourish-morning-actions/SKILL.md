@@ -24,7 +24,7 @@ node $GDRIVE read <fileId> | node $SUMMARIZER
 
 ### 2. Read targets and today's training
 
-Read `wiki/health/nutrition-targets.md`, `wiki/health/sleep-patterns.md`, and `wiki/health/training-schedule.md`.
+Query Athenaeum for Mark's current health targets and protocols: `mcp__athenaeum__get_context("Mark's nutrition targets, sleep patterns, and training schedule", verbosity: "standard")`.
 
 Determine what's on the schedule today:
 - **Sun/Tue/Fri**: OTF day

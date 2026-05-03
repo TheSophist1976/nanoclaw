@@ -35,10 +35,7 @@ Also collect workout data from the Workouts folder for the same period.
 
 ### 2. Read targets, training schedule, and last week's notes
 
-- `wiki/health/nutrition-targets.md`
-- `wiki/health/sleep-patterns.md`
-- `wiki/health/training-schedule.md`
-- `wiki/health/` for any notes from prior weeks worth comparing against
+Query Athenaeum for current health targets and prior week observations: `mcp__athenaeum__get_context("Mark's nutrition targets, sleep patterns, training schedule, and recent health observations", verbosity: "standard")`.
 
 ### 3. Query Athenaeum for context
 
@@ -71,15 +68,9 @@ A real review — not a list of numbers. Tell the story of the week. What's work
 
 Send via `mcp__nanoclaw__send_message` (sender: "Nourish").
 
-### 6. Update the wiki
+### 6. Save weekly summary
 
-Append a week-summary entry to `wiki/health/sleep-patterns.md` (or a new `wiki/health/weekly-log.md` if you create it) with:
-- Week ending date
-- Key averages (sleep, HRV, RHR, water)
-- Training adherence
-- One-line takeaway
-
-This builds the long-term record so future weekly reviews can compare against history.
+Save the weekly summary to Athenaeum so future reviews can compare against history: `mcp__athenaeum__add_memory(content, tags: ["domain:health", "agent:nourish", "type:weekly-review"], content_type: "temporal")`. Include: week ending date, key averages (sleep, HRV, RHR, water), training adherence, and one-line takeaway.
 
 ## Rules
 

@@ -227,3 +227,34 @@ registerChannelAdapter('telegram', {
     return wrapped;
   },
 });
+
+// Register pool bots from TELEGRAM_BOT_POOL=Name=token,Name=token,...
+// Each gets its own channel type (telegram-scholar, telegram-praxis, etc.)
+// so routing and delivery work independently from the main bot.
+{
+  const poolEnv = readEnvFile(['TELEGRAM_BOT_POOL']);
+  if (poolEnv.TELEGRAM_BOT_POOL) {
+    for (const entry of poolEnv.TELEGRAM_BOT_POOL.split(',')) {
+      const eqIdx = entry.indexOf('=');
+      if (eqIdx === -1) continue;
+      const botName = entry.slice(0, eqIdx).trim();
+      const token = entry.slice(eqIdx + 1).trim();
+      if (!botName || !token) continue;
+      const channelType = `telegram-${botName.toLowerCase()}`;
+      registerChannelAdapter(channelType, {
+        factory: () => {
+          const telegramAdapter = createTelegramAdapter({ botToken: token, mode: 'polling' });
+          const bridge = createChatSdkBridge({
+            adapter: telegramAdapter,
+            concurrency: 'concurrent',
+            extractReplyContext,
+            supportsThreads: false,
+            transformOutboundText: sanitizeTelegramLegacyMarkdown,
+          });
+          const wrapped: ChannelAdapter = { ...bridge, name: channelType, channelType };
+          return wrapped;
+        },
+      });
+    }
+  }
+}

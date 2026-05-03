@@ -13,10 +13,10 @@ It's Saturday morning — time for the weekly library maintenance pass.
 
 ## Step 0: Load context
 
-Read:
-- `/workspace/extra/Mark-main/wiki/interests/category-taxonomy.md` — current taxonomy
-- `/workspace/extra/Mark-main/wiki/interests/category-log.md` — last week's daily logs
-- `/workspace/extra/Mark-main/wiki/learning/interests.md` — Mark's intellectual interests for context
+Query Athenaeum:
+- Taxonomy: `mcp__athenaeum__get_context("Curator category taxonomy for Readwise tagging", verbosity: "standard")`
+- Last week's runs: `mcp__athenaeum__get_context("Curator daily run logs this week", recency_boost: 0.5, verbosity: "standard")`
+- Mark's learning interests: `mcp__athenaeum__get_context("Mark's active learning goals and interests", verbosity: "brief")`
 
 ## Step 1: Review unsorted backlog
 
@@ -42,8 +42,8 @@ readwise reader-remove-tags-from-document --document-id <id> --tag-names unsorte
 
 If you found a clear pattern in the unsorted backlog (3+ articles on the same domain that don't fit existing categories):
 
-1. **Edit `wiki/interests/category-taxonomy.md`** to add the new category — include the tag name, one-line description, and example titles
-2. **Apply the new tag** to the matching articles
+1. **Apply the new tag** to the matching articles
+2. **Save the updated taxonomy to Athenaeum**: `mcp__athenaeum__add_memory(content, tags: ["domain:interests", "agent:curator", "type:taxonomy"], content_type: "durable")` — include the full updated taxonomy list
 3. **Note the addition** in the report
 
 If you didn't find a clear pattern, leave the unsorted items as-is — don't force-fit.
@@ -94,9 +94,11 @@ For each category in the taxonomy, count items tagged with it (sample query):
 readwise reader-list-documents --tag ai --limit 1 --json
 ```
 
-## Step 6: Write report
+## Step 6: Save weekly report
 
-Append to `/workspace/extra/Mark-main/wiki/interests/category-log.md`:
+Save to Athenaeum: `mcp__athenaeum__add_memory(content, tags: ["domain:interests", "agent:curator", "type:run-log"], content_type: "temporal")`.
+
+Content format:
 
 ```markdown
 ## [YYYY-MM-DD] weekly maintenance
@@ -128,11 +130,9 @@ Append to `/workspace/extra/Mark-main/wiki/interests/category-log.md`:
 - Total items tagged: N (sum from daily logs)
 ```
 
-## Step 7: Update wiki/interests/
+## Step 7: Save pattern observations
 
-If new categories were added, also update `wiki/interests/category-taxonomy.md` (already done in Step 2).
-
-If reading patterns suggest a new intellectual interest area, append a brief note to `wiki/interests/index.md` or create a new wiki page in `wiki/interests/`.
+If reading patterns suggest a new intellectual interest area, save to Athenaeum: `mcp__athenaeum__add_memory(content, tags: ["domain:interests", "agent:curator", "type:pattern"], content_type: "durable")`.
 
 ## Rules
 

@@ -77,14 +77,11 @@ Use `mcp__nanoclaw__send_message` with `sender: "Sentinel"` to send messages to 
 Follow the Memory System protocol in the group CLAUDE.md. Domain-specific instructions:
 
 ### Retrieval
-1. Read `wiki/systems/` pages for infrastructure context and known baselines
+1. For infrastructure context and known baselines: `mcp__athenaeum__get_context("Sentinel network infrastructure, known hosts, and baselines", verbosity: "standard")`
 2. For past security findings or network changes: `mcp__athenaeum__get_context(task, verbosity: "standard")`
 3. For checking if a host or port was seen before: `mcp__athenaeum__search_memory(query)`
 
 ### Writes
-- **Baseline changes** (new host, new port, service version change): update `wiki/systems/` page if one exists for this domain. Save to Athenaeum: `add_memory(content, tags: ["domain:systems", "agent:sentinel", "type:observation"], content_type: "temporal")`
+- **Baseline changes** (new host, new port, service version change): save to Athenaeum: `add_memory(content, tags: ["domain:systems", "agent:sentinel", "type:observation"], content_type: "durable")`
 - **Action-required findings**: save to Athenaeum so future reports can check resolution: `add_memory(content, tags: ["domain:systems", "agent:sentinel", "type:decision"], content_type: "temporal")`
 - **Routine all-clear reports**: do not save anywhere. The report file in `Security/` is the record.
-
-### Wiki pages you maintain
-`wiki/systems/` (infrastructure, network topology, known hosts)

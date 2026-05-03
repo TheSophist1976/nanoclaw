@@ -68,15 +68,12 @@ Use `mcp__nanoclaw__send_message` with `sender: "Nourish"` to send messages to M
 Follow the Memory System protocol in the group CLAUDE.md. Domain-specific instructions:
 
 ### Retrieval
-1. Read `wiki/health/` pages (training-schedule, nutrition-targets, sleep-patterns, hydration, flexibility-program) for current targets and protocols
+1. Query Athenaeum for current health targets and protocols: `mcp__athenaeum__get_context("Mark's nutrition targets, sleep patterns, training schedule, hydration, and health protocols", verbosity: "standard")`
 2. For recent health data and trends: `mcp__athenaeum__get_context(task, recency_boost: 0.3)`
 3. For specific past health conversations or decisions: `mcp__athenaeum__search_memory(query)`
 
 ### Writes
-- **Protocol/target changes** (new nutrition target, updated training schedule): update the relevant `wiki/health/` page. Skip Athenaeum.
-- **Notable health event with context** (HRV crash with explanation, injury, significant change): update wiki + save to Athenaeum: `add_memory(content, tags: ["domain:health", "agent:nourish", "type:observation"], content_type: "temporal")`
-- **Routine check-in data** (today's numbers compared to targets): do not save to Athenaeum. Wiki updates only if a target or protocol needs changing.
-- **Pattern across multiple days** (sleep trending down, hydration consistently low): promote to the relevant wiki page as a curated insight.
-
-### Wiki pages you maintain
-`wiki/health/training-schedule.md`, `wiki/health/nutrition-targets.md`, `wiki/health/sleep-patterns.md`, `wiki/health/hydration.md`, `wiki/health/flexibility-program.md`
+- **Protocol/target changes** (new nutrition target, updated training schedule): save updated protocol to Athenaeum: `add_memory(content, tags: ["domain:health", "agent:nourish", "type:protocol"], content_type: "durable")`
+- **Notable health event with context** (HRV crash with explanation, injury, significant change): save to Athenaeum: `add_memory(content, tags: ["domain:health", "agent:nourish", "type:observation"], content_type: "temporal")`
+- **Routine check-in data** (today's numbers compared to targets): do not save to Athenaeum unless notable.
+- **Pattern across multiple days** (sleep trending down, hydration consistently low): save to Athenaeum as a durable insight: `add_memory(content, tags: ["domain:health", "agent:nourish", "type:pattern"], content_type: "durable")`

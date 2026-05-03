@@ -23,10 +23,7 @@ export interface ProxyConfig {
   authMode: AuthMode;
 }
 
-export function startCredentialProxy(
-  port: number,
-  host = '127.0.0.1',
-): Promise<Server> {
+export function startCredentialProxy(port: number, host = '127.0.0.1'): Promise<Server> {
   const secrets = readEnvFile([
     'ANTHROPIC_API_KEY',
     'CLAUDE_CODE_OAUTH_TOKEN',
@@ -35,12 +32,9 @@ export function startCredentialProxy(
   ]);
 
   const authMode: AuthMode = secrets.ANTHROPIC_API_KEY ? 'api-key' : 'oauth';
-  const oauthToken =
-    secrets.CLAUDE_CODE_OAUTH_TOKEN || secrets.ANTHROPIC_AUTH_TOKEN;
+  const oauthToken = secrets.CLAUDE_CODE_OAUTH_TOKEN || secrets.ANTHROPIC_AUTH_TOKEN;
 
-  const upstreamUrl = new URL(
-    secrets.ANTHROPIC_BASE_URL || 'https://api.anthropic.com',
-  );
+  const upstreamUrl = new URL(secrets.ANTHROPIC_BASE_URL || 'https://api.anthropic.com');
   const isHttps = upstreamUrl.protocol === 'https:';
   const makeRequest = isHttps ? httpsRequest : httpRequest;
 
@@ -50,12 +44,11 @@ export function startCredentialProxy(
       req.on('data', (c) => chunks.push(c));
       req.on('end', () => {
         const body = Buffer.concat(chunks);
-        const headers: Record<string, string | number | string[] | undefined> =
-          {
-            ...(req.headers as Record<string, string>),
-            host: upstreamUrl.host,
-            'content-length': body.length,
-          };
+        const headers: Record<string, string | number | string[] | undefined> = {
+          ...(req.headers as Record<string, string>),
+          host: upstreamUrl.host,
+          'content-length': body.length,
+        };
 
         // Strip hop-by-hop headers that must not be forwarded by proxies
         delete headers['connection'];
@@ -130,11 +123,7 @@ export function detectAuthMode(): AuthMode {
 }
 
 /** Extract token usage from a proxy response and log it to the DB. */
-function extractAndLogUsage(
-  body: string,
-  upRes: IncomingMessage,
-  requestPath: string,
-): void {
+function extractAndLogUsage(body: string, upRes: IncomingMessage, requestPath: string): void {
   const statusCode = upRes.statusCode || 0;
   if (statusCode < 200 || statusCode >= 300) return;
 
@@ -156,10 +145,8 @@ function extractAndLogUsage(
           model = event.message.model || null;
           if (event.message.usage) {
             inputTokens += event.message.usage.input_tokens || 0;
-            cacheWriteTokens +=
-              event.message.usage.cache_creation_input_tokens || 0;
-            cacheReadTokens +=
-              event.message.usage.cache_read_input_tokens || 0;
+            cacheWriteTokens += event.message.usage.cache_creation_input_tokens || 0;
+            cacheReadTokens += event.message.usage.cache_read_input_tokens || 0;
           }
         }
         if (event.type === 'message_delta' && event.usage) {
@@ -196,13 +183,7 @@ function extractAndLogUsage(
         output_tokens: outputTokens,
         cache_creation_input_tokens: cacheWriteTokens,
         cache_read_input_tokens: cacheReadTokens,
-        estimated_cost_usd: estimateCost(
-          model,
-          inputTokens,
-          outputTokens,
-          cacheWriteTokens,
-          cacheReadTokens,
-        ),
+        estimated_cost_usd: estimateCost(model, inputTokens, outputTokens, cacheWriteTokens, cacheReadTokens),
         request_path: requestPath,
         status_code: statusCode,
       });

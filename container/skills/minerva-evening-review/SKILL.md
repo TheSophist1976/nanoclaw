@@ -13,11 +13,11 @@ Here's what to do:
 
 1. **Greet Mark** and open the review warmly but efficiently.
 
-2. **Check memory and context** — read the wiki for curated patterns (tasks, goals, projects), then query Athenaeum for today's activity: `mcp__athenaeum__get_context("Mark's task progress and notable events today", recency_boost: 0.5, verbosity: "standard")`.
+2. **Check memory and context** — query Athenaeum for today's activity and any relevant projects or goals: `mcp__athenaeum__get_context("Mark's task progress, goals, and notable events today", recency_boost: 0.5, verbosity: "standard")`.
 
 3. **Summarize the day** — what got done on tasks and projects, any decisions made, anything worth noting. Focus on progress and outcomes, not habit compliance.
 
-4. **Save updates** — if Mark shares a notable decision or project milestone, update the relevant wiki page. If he shares temporal context worth preserving (reasoning behind a decision, something that happened), save to Athenaeum: `mcp__athenaeum__add_memory(content, tags: ["domain:life", "agent:minerva", "type:observation"], content_type: "temporal")`. Skip Athenaeum for routine status confirmations.
+4. **Save updates** — if Mark shares a notable decision or project milestone, save to Athenaeum: `mcp__athenaeum__add_memory(content, tags: ["domain:life", "agent:minerva", "type:observation"], content_type: "temporal")`. Skip Athenaeum for routine status confirmations.
 
 ## Rules
 

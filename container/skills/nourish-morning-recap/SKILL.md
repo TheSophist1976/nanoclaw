@@ -29,7 +29,9 @@ Also search for yesterday's workout file in the Workouts folder. If a workout ha
 
 ### 2. Read targets
 
-Read `wiki/health/nutrition-targets.md` and `wiki/health/sleep-patterns.md` for context:
+Query Athenaeum for Mark's current health targets: `mcp__athenaeum__get_context("Mark's nutrition targets, sleep patterns, and health protocols", verbosity: "brief")`.
+
+Fallback targets if Athenaeum returns nothing:
 - **Sleep**: 7–7.5 hours
 - **Calories**: 1,950–2,000 kcal
 - **Water**: 100–120 fl oz
@@ -46,11 +48,9 @@ A grounded summary of yesterday — sleep, recovery (RHR/HRV), training, movemen
 
 Send via `mcp__nanoclaw__send_message` (sender: "Nourish").
 
-### 4. Update wiki if useful
+### 4. Save notable observations
 
-If yesterday revealed something worth keeping (a notably bad sleep night, an HRV crash, a missed workout pattern), append a brief line to `wiki/health/sleep-patterns.md` or relevant page. Skip if nothing notable.
-
-For significant anomalies (HRV crash, very short sleep, missed training on a training day), also save to Athenaeum so weekly reviews can find the pattern: `mcp__athenaeum__add_memory(content, tags: ["domain:health", "agent:nourish", "type:observation"], content_type: "temporal")`. Skip Athenaeum for normal days.
+For significant anomalies (HRV crash, very short sleep, missed training on a training day), save to Athenaeum so weekly reviews can find the pattern: `mcp__athenaeum__add_memory(content, tags: ["domain:health", "agent:nourish", "type:observation"], content_type: "temporal")`. Skip for normal days.
 
 ## Rules
 

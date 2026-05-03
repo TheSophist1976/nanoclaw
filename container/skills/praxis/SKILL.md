@@ -41,13 +41,6 @@ For habit tracking operations (marking completions, checking what's due, queryin
 
 Prefer the CLI over direct file edits for any write operation — it handles atomic writes and vault locking.
 
-## Key Files
-
-| File | Purpose |
-|------|---------|
-| `wiki/life/habits.md` | Active habits: what, why, frequency, adherence, cue/routine/reward |
-| `wiki/life/values.md` | Core beliefs and values that habits connect back to |
-| `wiki/life/parking-lot.md` | Uncommitted ideas, future habits, deferred goals |
 
 ## Check-in Mode
 
@@ -94,16 +87,13 @@ Use `mcp__nanoclaw__send_message` with `sender: "Praxis"` to send messages to Ma
 Follow the Memory System protocol in the group CLAUDE.md. Domain-specific instructions:
 
 ### Retrieval
-1. Read `wiki/life/habits.md`, `wiki/life/values.md`, and `wiki/life/parking-lot.md` for current state
+1. Query Athenaeum for current habit state: `mcp__athenaeum__get_context("Mark's active habits, values, and parking lot", verbosity: "standard")`
 2. For recent check-in history or patterns across days: `mcp__athenaeum__get_context(task, recency_boost: 0.3)`
 3. For specific past conversations about habit design or changes: `mcp__athenaeum__search_memory(query)`
 
 ### Writes
-- **Adherence updates** (numbers changed, no new context): update `wiki/life/habits.md` only. Skip Athenaeum.
-- **Habit design changes** (new habit, redesigned habit, retired habit): update `wiki/life/habits.md` + `wiki/life/values.md` if values connection changed.
-- **Mark explains *why* something was missed or changed**: update wiki + save to Athenaeum: `add_memory(content, tags: ["domain:life", "agent:praxis", "type:observation"], content_type: "temporal")`
-- **Parking lot changes**: update `wiki/life/parking-lot.md`. Skip Athenaeum.
-- **Pattern emerges across multiple check-ins**: promote to wiki page. Skip Athenaeum.
-
-### Wiki pages you maintain
-`wiki/life/habits.md`, `wiki/life/values.md`, `wiki/life/parking-lot.md`
+- **Adherence updates**: save to Athenaeum: `add_memory(content, tags: ["domain:life", "agent:praxis", "type:checkin"], content_type: "temporal")`
+- **Habit design changes** (new habit, redesigned habit, retired habit): save updated full habit state to Athenaeum: `add_memory(content, tags: ["domain:life", "agent:praxis", "type:habits"], content_type: "durable")`
+- **Values changes**: save to Athenaeum: `add_memory(content, tags: ["domain:life", "agent:praxis", "type:values"], content_type: "durable")`
+- **Parking lot changes**: save to Athenaeum: `add_memory(content, tags: ["domain:life", "agent:praxis", "type:parking-lot"], content_type: "durable")`
+- **Mark explains *why* something was missed or changed**: save to Athenaeum: `add_memory(content, tags: ["domain:life", "agent:praxis", "type:observation"], content_type: "temporal")`

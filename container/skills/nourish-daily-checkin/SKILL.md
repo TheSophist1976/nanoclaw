@@ -36,7 +36,9 @@ Search for today's workout export in the "Workouts" folder. If a workout happene
 
 ### 3. Read Mark's targets
 
-Read `wiki/health/nutrition-targets.md` and `wiki/health/sleep-patterns.md` for his targets:
+Query Athenaeum for Mark's current health targets: `mcp__athenaeum__get_context("Mark's nutrition targets and health protocols", verbosity: "brief")`.
+
+Fallback targets if Athenaeum returns nothing:
 - **Calories**: 1,950–2,000 kcal
 - **Sleep**: 7–7.5 hours
 - **Water**: 100–120 fl oz
@@ -54,8 +56,6 @@ Compare today's actual data to targets. Pick the most interesting or actionable 
 Send via `mcp__nanoclaw__send_message` (sender: "Nourish").
 
 ### 5. If Mark responds
-
-Update `wiki/health/` pages if he shares info not already captured (e.g., how he's feeling, meal details, skipped tracking reason). Keep updates minimal and factual.
 
 If Mark shares notable context about how he's feeling (not just numbers), save to Athenaeum: `mcp__athenaeum__add_memory(content, tags: ["domain:health", "agent:nourish", "type:checkin"], content_type: "temporal")`. Skip Athenaeum for routine number confirmations.
 

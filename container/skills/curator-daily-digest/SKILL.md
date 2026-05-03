@@ -13,9 +13,9 @@ It's 6:15am — time to categorize and organize new Readwise articles. **You do 
 
 ## Step 0: Load the taxonomy
 
-Read `/workspace/extra/Mark-main/wiki/interests/category-taxonomy.md` to load the canonical category list. Use ONLY tags from this taxonomy. Never invent tags during the daily run.
+Query Athenaeum for the taxonomy: `mcp__athenaeum__get_context("Curator category taxonomy for Readwise tagging", verbosity: "standard")`. Use ONLY tags from this taxonomy. Never invent tags during the daily run.
 
-Also read `/workspace/extra/Mark-main/wiki/learning/interests.md` to understand Mark's active learning goals — this informs `later` vs `shortlist` decisions.
+Also query Athenaeum for Mark's active learning goals (for `later` vs `shortlist` decisions): `mcp__athenaeum__get_context("Mark's active learning goals and interests", verbosity: "brief")`.
 
 ## Step 1: Process feed items
 
@@ -31,7 +31,7 @@ For each item that does NOT already have a tag from the taxonomy:
 2. **Apply 1+ tags** from the taxonomy via `readwise reader-add-tags-to-document --document-id <id> --tag-names <tag1>,<tag2>`
 3. **Mark as seen** via `readwise reader-bulk-edit-document-metadata --documents '[{"document_id":"<id>","seen":true}]'`
 4. **Move out of feed** to `later` or `shortlist`:
-   - **Shortlist** ONLY if the article matches an active learning goal in `wiki/learning/interests.md` (e.g. neuroscience, CBT, AI tooling, engineering leadership)
+   - **Shortlist** ONLY if the article matches an active learning goal from the Athenaeum context (e.g. neuroscience, CBT, AI tooling, engineering leadership)
    - **Later** for everything else
    - Use `readwise reader-move-documents --document-ids <id> --location later` (or `shortlist`)
 
@@ -54,26 +54,20 @@ Same logic as feed:
 
 **Never remove tags.** Only add. If an article already has manual tags Mark applied, leave them. Add taxonomy tags alongside.
 
-## Step 4: Append to category log
+## Step 4: Save run log
 
-Write a date-stamped entry to `/workspace/extra/Mark-main/wiki/interests/category-log.md`:
+Save a date-stamped run entry to Athenaeum: `mcp__athenaeum__add_memory(content, tags: ["domain:interests", "agent:curator", "type:run-log"], content_type: "temporal")`.
 
-```bash
-mkdir -p /workspace/extra/Mark-main/wiki/interests
+Content format:
 ```
-
-Append (do NOT overwrite):
-
-```markdown
-## [YYYY-MM-DD] daily
-
-- **Feed processed**: N items
-- **Inbox processed**: N items
-- **Total tagged**: N
-- **By category**: ai (N), engineering-leadership (N), health-fitness (N), unsorted (N), ...
-- **Moved to shortlist**: N
-- **Moved to later**: N
-- **Unsorted (need review)**: N items — list titles
+[YYYY-MM-DD] daily run
+- Feed processed: N items
+- Inbox processed: N items
+- Total tagged: N
+- By category: ai (N), engineering-leadership (N), health-fitness (N), unsorted (N), ...
+- Moved to shortlist: N
+- Moved to later: N
+- Unsorted (need review): N items — list titles
 ```
 
 ## Step 5: No other files

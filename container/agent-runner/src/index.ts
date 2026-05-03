@@ -31,6 +31,7 @@ import { buildSystemPromptAddendum } from './destinations.js';
 // Provider skills append imports to providers/index.ts.
 import './providers/index.js';
 import { createProvider, type ProviderName } from './providers/factory.js';
+import type { McpServerConfig } from './providers/types.js';
 import { runPollLoop } from './poll-loop.js';
 
 function log(msg: string): void {
@@ -72,8 +73,8 @@ async function main(): Promise<void> {
   const __dirname = path.dirname(fileURLToPath(import.meta.url));
   const mcpServerPath = path.join(__dirname, 'mcp-tools', 'index.ts');
 
-  // Build MCP servers config: nanoclaw built-in + any from container.json
-  const mcpServers: Record<string, { command: string; args: string[]; env: Record<string, string> }> = {
+  // Build MCP servers config: nanoclaw built-in + Athenaeum/Pane (if configured) + any from container.json
+  const mcpServers: Record<string, McpServerConfig> = {
     nanoclaw: {
       command: 'bun',
       args: ['run', mcpServerPath],
@@ -81,9 +82,32 @@ async function main(): Promise<void> {
     },
   };
 
+  if (process.env.ATHENAEUM_URL) {
+    const atheneumConfig: McpServerConfig = {
+      type: 'http',
+      url: process.env.ATHENAEUM_URL,
+      ...(process.env.ATHENAEUM_API_KEY && {
+        headers: { Authorization: `Bearer ${process.env.ATHENAEUM_API_KEY}` },
+      }),
+    };
+    mcpServers['athenaeum'] = atheneumConfig;
+    log(`Athenaeum MCP: ${process.env.ATHENAEUM_URL}`);
+  }
+
+  if (process.env.PANE_API_KEY) {
+    const paneUrl = process.env.PANE_MCP_URL ?? 'https://pane-mcm-ui.fly.dev/api/mcp';
+    mcpServers['pane'] = {
+      type: 'http',
+      url: paneUrl,
+      headers: { Authorization: `Bearer ${process.env.PANE_API_KEY}` },
+    };
+    log(`Pane MCP: ${paneUrl}`);
+  }
+
   for (const [name, serverConfig] of Object.entries(config.mcpServers)) {
     mcpServers[name] = serverConfig;
-    log(`Additional MCP server: ${name} (${serverConfig.command})`);
+    const hint = 'command' in serverConfig ? serverConfig.command : serverConfig.url;
+    log(`Additional MCP server: ${name} (${hint})`);
   }
 
   const provider = createProvider(providerName, {

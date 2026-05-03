@@ -13,9 +13,9 @@ Generate and send Mark's daily morning update. Follow these instructions exactly
 - **Habits/Goals**: Check memory for recent check-in data (reading progress, nutrition, fitness/training)
 - **Parking lot**: Check memory for parking lot items
 - **Weather**: Fetch from Open-Meteo API for Atlanta, GA (lat=33.7490, lon=-84.3880)
-- **Reading library counts**: Read the most recent daily entry in `/workspace/extra/Mark-main/wiki/interests/category-log.md` for today's processing summary
+- **Reading library counts**: Query Athenaeum for today's Curator run: `mcp__athenaeum__get_context("Curator daily run log today", recency_boost: 0.9, verbosity: "brief")`
 - **Security report**: Read `/workspace/extra/Mark-main/Security/sentinel-YYYY-MM-DD.md` (use today's date)
-- **Wiki**: Read relevant pages in `/workspace/extra/Mark-main/wiki/` for any context on goals, training, or routines that's already curated
+- **Context**: Query Athenaeum for recent activity and goals: `mcp__athenaeum__get_context("Mark's recent activity and updates", recency_boost: 0.3, verbosity: "brief")`
 
 ## Weather (Weekdays Only)
 
@@ -48,7 +48,7 @@ Read `tasks.md` and find ALL open tasks (`[ ]`) where `priority:critical` OR `pr
 
 ### 2. Today's Schedule
 
-Check the wiki for what's on today — training schedule (`wiki/health/training-schedule.md`), any events or deadlines from tasks. If a race or event is within 2 weeks, include a countdown. Keep it to 2-3 lines of what's notable about today specifically.
+Query Athenaeum for today's training schedule and any scheduled events: `mcp__athenaeum__get_context("Mark's training schedule and upcoming events", verbosity: "brief")`. Also check tasks for events or deadlines within 2 weeks. If a race or event is within 2 weeks, include a countdown. Keep it to 2-3 lines of what's notable about today specifically.
 
 Habits are handled by Praxis (6:45 AM reminder) — do NOT duplicate habit tracking here.
 
@@ -56,7 +56,7 @@ Habits are handled by Praxis (6:45 AM reminder) — do NOT duplicate habit track
 
 Include a brief *Reading* section using counts from today's Curator run.
 
-Read the most recent entry in `wiki/interests/category-log.md` and produce a one-line summary in this format:
+Use the Curator run log from Athenaeum (fetched in Data Sources) and produce a one-line summary in this format:
 
 > 📚 *Reading*: N new tagged today · top: ai (X), engineering-leadership (Y), health-fitness (Z) · N moved to shortlist · N unsorted
 
@@ -83,6 +83,6 @@ Tight and scannable. Use Telegram formatting (`*bold*`, `•` bullets). Start wi
 ## Rules
 
 - Only CRITICAL and HIGH priority tasks in the tasks section
-- Check the wiki first for static knowledge (training schedule, routines), then query Athenaeum for recent activity: `mcp__athenaeum__get_context("Mark's recent activity and updates", recency_boost: 0.3, verbosity: "brief")`
+- Use Athenaeum for all context (training schedule, routines, recent activity) — queries are already specified in Data Sources above
 - Do NOT mention this is a scheduled task
 - Keep it under ~50 lines total
